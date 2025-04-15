@@ -18,8 +18,15 @@ export class UsersService {
 
 
     findOne(id:number){
+        if(!id){
+            return null;
+        }
       return this.repo.findOneBy({id});  
 
+    }
+
+    findAll(){
+        return this.repo.find();
     }
 
     find(email:string){

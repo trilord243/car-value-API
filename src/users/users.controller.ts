@@ -1,26 +1,57 @@
-import { Controller, Post, Body,Get,Patch,Param,Query, Delete, NotFoundException, ParseIntPipe,UseInterceptors,ClassSerializerInterceptor } from '@nestjs/common';
+import { Controller, Post, Body,Get,Patch,Param,Query, Delete, NotFoundException, ParseIntPipe,ClassSerializerInterceptor,Session,UseGuards } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Serialize } from 'src/interceptors/serialize.interceptor';
 import { UserDto } from './dto/user.dto';
 import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
+
+import { User } from './user.entity';
+import { AuthGuard } from 'src/guards/auth.guard';
+
 @Serialize(UserDto)
 @Controller('auth')
+
 export class UsersController {
     constructor(private usersService: UsersService,private authService:AuthService) {}
-    @Post('signup')
-    createUser(@Body()  body: CreateUserDto ){
-       return this.authService.signup(body.email, body.password);
 
+
+
+    @Post('signup')
+    async createUser(@Body()  body: CreateUserDto,@Session() session: any ){
+       const user = await  this.authService.signup(body.email, body.password);
+       session.userId = user.id;
+       return user;
 
        
     }
 
-    @Post('signin')
-    signin(@Body() body:CreateUserDto){
-        return this.authService.signin(body.email,body.password);
+    /* @Get('/whoami')
+    whoAmI(@Session() session: any){
+        return this.usersService.findOne(session.userId);
+    }    
+     */
+    
+    @Get('/whoami')
+    @UseGuards(AuthGuard)
+    whoAmI(@CurrentUser() user: User){
+        return user
     }
+
+    @Post('signin')
+    async signin(@Body() body:CreateUserDto ,@Session() session: any){
+        const user = await  this.authService.signin(body.email,body.password);
+        session.userId = user.id;
+        return user;
+    }
+    
+    @Post('signout')
+    signout(@Session() session: any){
+        session.userId = null;
+    }
+
+
 
 
 
